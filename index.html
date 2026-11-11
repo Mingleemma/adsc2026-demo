@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Image insights picture book</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page: #e4e8e2;
+    --cover: #20343b;
+    --ink: #1d2a2e;
+    --muted: #5a6a6e;
+    --mat: #ffffff;
+    --line: #c5cdc6;
+    --accent: #1b6d85;
+    --chip: #d8e6e8;
+    --warn-bg: #fbe3dc;
+    --warn: #8a2d14;
+    --ok-bg: #dcebdc;
+    --ok: #28552b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #172125;
+      --cover: #0f181b;
+      --ink: #e5ece8;
+      --muted: #9fb0b3;
+      --mat: #223037;
+      --line: #35464c;
+      --accent: #7cc4d9;
+      --chip: #2a4047;
+      --warn-bg: #4a2418;
+      --warn: #ffb59f;
+      --ok-bg: #1f3a22;
+      --ok: #a9dcab;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font: 400 1rem/1.55 "Figtree", system-ui, sans-serif;
+  }
+  header {
+    background: var(--cover);
+    color: #eef3ef;
+    padding: 3.5rem 1.5rem 2.5rem;
+  }
+  header .inner, main { max-width: 68rem; margin: 0 auto; }
+  h1 {
+    font: 400 clamp(2rem, 5vw, 3.2rem)/1.1 "Young Serif", Georgia, serif;
+    margin: 0 0 .6rem;
+  }
+  header p { margin: 0; color: #b8c8cb; max-width: 36rem; }
+  main { padding: 2rem 1.5rem 4rem; }
+  .upload {
+    background: var(--mat); border: 1px solid var(--line);
+    padding: 1.1rem 1.25rem; margin: 0 0 1.75rem;
+  }
+  .upload label { display: block; font-weight: 600; margin-bottom: .6rem; }
+  .upload .row { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
+  .upload input[type=file] { font: inherit; max-width: 100%; color: var(--ink); }
+  .upload button {
+    font: inherit; font-weight: 600; cursor: pointer;
+    background: var(--accent); color: #fff; border: 0;
+    padding: .55rem 1.1rem; border-radius: 6px;
+  }
+  @media (prefers-color-scheme: dark) { .upload button { color: #0f181b; } }
+  .upload button:disabled { opacity: .55; cursor: progress; }
+  #upload-msg { margin: .7rem 0 0; color: var(--muted); min-height: 1.5em; }
+  #upload-msg.error { color: var(--warn); }
+  #status { color: var(--muted); margin: 0 0 1.5rem; }
+  #status.error {
+    color: var(--warn); background: var(--warn-bg);
+    padding: .9rem 1rem; border-radius: 6px;
+  }
+
+  .spread {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 2rem;
+    padding: 1.75rem 0;
+    border-top: 1px solid var(--line);
+  }
+  .spread:first-of-type { border-top: 0; }
+  .photo {
+    background: var(--mat);
+    padding: .9rem;
+    border: 1px solid var(--line);
+    box-shadow: 0 1px 0 var(--line);
+    align-self: start;
+  }
+  .photo img { display: block; width: 100%; height: auto; max-height: 34rem; object-fit: contain; background: var(--page); }
+
+  h2 {
+    font: 400 1.5rem/1.2 "Young Serif", Georgia, serif;
+    margin: 0 0 .25rem;
+    overflow-wrap: anywhere;
+  }
+  .when { color: var(--muted); font-size: .9rem; margin: 0 0 1.1rem; }
+  h3 { font-size: .95rem; font-weight: 600; margin: 1.1rem 0 .4rem; }
+  ul.chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem; }
+  .chips li {
+    background: var(--chip); border-radius: 999px;
+    padding: .2rem .7rem; font-size: .9rem;
+  }
+  .chips li small { color: var(--muted); margin-left: .25rem; }
+  .faces { margin: 0; padding-left: 1.1rem; }
+  .faces li { margin-bottom: .2rem; }
+  .text-found { margin: 0; padding: .6rem .8rem; background: var(--mat); border-left: 3px solid var(--accent); overflow-wrap: anywhere; }
+  .none { color: var(--muted); margin: 0; font-size: .95rem; }
+  .badge { display: inline-block; padding: .2rem .65rem; border-radius: 4px; font-size: .9rem; font-weight: 500; }
+  .badge.ok { background: var(--ok-bg); color: var(--ok); }
+  .badge.flag { background: var(--warn-bg); color: var(--warn); }
+
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  @media (max-width: 760px) {
+    .spread { grid-template-columns: 1fr; gap: 1.1rem; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="inner">
+    <h1>Image insights picture book</h1>
+    <p>Every photo uploaded to the bucket, with what Amazon Rekognition found in it.</p>
+  </div>
+</header>
+<main>
+  <form id="upload-form" class="upload">
+    <label for="photo">Add a photo (JPEG or PNG, up to 10 MB)</label>
+    <div class="row">
+      <input id="photo" type="file" accept="image/jpeg,image/png">
+      <button type="submit" id="upload-btn">Upload and analyze</button>
+    </div>
+    <p id="upload-msg" role="status"></p>
+  </form>
+  <p id="status" role="status">Loading images…</p>
+  <div id="book"></div>
+</main>
+
+<script src="config.js"></script>
+<script>
+  // Set in config.js (copy config.example.js to config.js).
+  const API_URL = (window.APP_CONFIG || {}).API_URL;
+  if (!API_URL) {
+    document.getElementById("status").className = "error";
+    document.getElementById("status").textContent =
+      "API_URL is not set. Create config.js next to this page (see config.example.js).";
+    throw new Error("Missing API_URL");
+  }
+
+  const statusEl = document.getElementById("status");
+  const book = document.getElementById("book");
+
+  // Everything from Rekognition (e.g. detected text) is untrusted: always escape.
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  const cap = (s) => s ? s.charAt(0) + s.slice(1).toLowerCase() : "";
+
+  function fileName(item) {
+    return item.key.split("/").pop();
+  }
+
+  function labelsHtml(item) {
+    const labels = item.labels || [];
+    if (!labels.length) return '<p class="none">No objects or scenes detected.</p>';
+    return '<ul class="chips">' + labels.map((l) =>
+      `<li>${esc(l.name)}<small>${Math.round(l.confidence)}%</small></li>`).join("") + "</ul>";
+  }
+
+  function facesHtml(item) {
+    const faces = item.faces || [];
+    if (!faces.length) return '<p class="none">No faces detected.</p>';
+    const rows = faces.map((f) => {
+      const bits = [];
+      if (f.age_range) bits.push(`age about ${f.age_range.Low}–${f.age_range.High}`);
+      if (f.top_emotion) bits.push(cap(f.top_emotion).toLowerCase());
+      if (f.smile) bits.push("smiling");
+      if (f.eyeglasses) bits.push("wearing glasses");
+      return `<li>${esc(bits.join(", "))}</li>`;
+    }).join("");
+    return `<p class="none" style="margin-bottom:.3rem">${faces.length} ${faces.length === 1 ? "face" : "faces"} (estimates)</p><ul class="faces">${rows}</ul>`;
+  }
+
+  function textHtml(item) {
+    const lines = item.detected_text || [];
+    if (!lines.length) return '<p class="none">No text found in the image.</p>';
+    return '<p class="text-found">' + lines.slice(0, 12).map(esc).join("<br>") + "</p>";
+  }
+
+  function moderationHtml(item) {
+    if (!item.moderation_flagged) return '<span class="badge ok">Nothing flagged</span>';
+    const names = (item.moderation_labels || []).map((m) => esc(m.name)).join(", ");
+    return `<span class="badge flag">Flagged: ${names}</span>`;
+  }
+
+  function celebsHtml(item) {
+    const list = item.celebrities || [];
+    if (!list.length) return '<p class="none">No well-known people recognized.</p>';
+    return '<ul class="chips">' + list.map((c) => {
+      const url = (c.urls || [])[0];
+      const name = esc(c.name);
+      const link = url
+        ? `<a href="https://${esc(url.replace(/^https?:\/\//, ""))}" target="_blank" rel="noopener">${name}</a>`
+        : name;
+      return `<li>${link}<small>${Math.round(c.match_confidence)}%</small></li>`;
+    }).join("") + "</ul>";
+  }
+
+  function render(items) {
+    book.innerHTML = items.map((item) => {
+      const when = item.analyzed_at ? new Date(item.analyzed_at).toLocaleString() : "";
+      return `
+        <article class="spread">
+          <div class="photo"><img src="${esc(item.image_url)}" alt="${esc((item.label_names || []).slice(0, 5).join(", ") || fileName(item))}" loading="lazy"></div>
+          <div>
+            <h2>${esc(fileName(item))}</h2>
+            <p class="when">Analyzed ${esc(when)}</p>
+            <h3>What's in the picture</h3>${labelsHtml(item)}
+            <h3>People</h3>${facesHtml(item)}
+            <h3>Well-known people</h3>${celebsHtml(item)}
+            <h3>Text in the image</h3>${textHtml(item)}
+            <h3>Content check</h3>${moderationHtml(item)}
+          </div>
+        </article>`;
+    }).join("");
+  }
+
+  async function fetchImages() {
+    const res = await fetch(API_URL);
+    if (!res.ok) throw new Error("The API returned " + res.status);
+    return (await res.json()).images;
+  }
+
+  function show(images) {
+    statusEl.className = "";
+    if (!images.length) {
+      statusEl.textContent = "No images yet. Use the form above to add your first photo.";
+      book.innerHTML = "";
+      return;
+    }
+    statusEl.textContent = `${images.length} ${images.length === 1 ? "image" : "images"}, newest first.`;
+    render(images);
+  }
+
+  async function load() {
+    try {
+      show(await fetchImages());
+    } catch (err) {
+      statusEl.className = "error";
+      statusEl.textContent = "Couldn't load images: " + err.message +
+        ". Check that API_URL is set and that CORS allows this page's origin.";
+    }
+  }
+
+  // ---- Upload straight to S3 ----
+  const ALLOWED = ["image/jpeg", "image/png"];
+  const MAX_BYTES = 10 * 1024 * 1024;
+  const form = document.getElementById("upload-form");
+  const fileInput = document.getElementById("photo");
+  const uploadBtn = document.getElementById("upload-btn");
+  const uploadMsg = document.getElementById("upload-msg");
+
+  function setMsg(text, isError) {
+    uploadMsg.textContent = text;
+    uploadMsg.className = isError ? "error" : "";
+  }
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // The analyzer runs a few seconds after the upload, so poll until the new image shows up.
+  async function waitForResult(key) {
+    for (let i = 0; i < 20; i++) {
+      await sleep(2000);
+      const images = await fetchImages();
+      if (images.some((img) => img.key === key)) {
+        show(images);
+        setMsg("Done. Your photo is at the top of the book.");
+        return;
+      }
+    }
+    show(await fetchImages());
+    setMsg("Uploaded, but analysis is taking longer than expected. Refresh in a moment.");
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const file = fileInput.files[0];
+    if (!file) return setMsg("Choose a JPEG or PNG first.", true);
+    if (!ALLOWED.includes(file.type)) return setMsg("Only JPEG and PNG images are supported.", true);
+    if (file.size > MAX_BYTES) return setMsg("That file is over 10 MB.", true);
+
+    uploadBtn.disabled = true;
+    try {
+      setMsg("Preparing upload…");
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name, content_type: file.type }),
+      });
+      const info = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(info.error || "Couldn't start the upload (" + res.status + ")");
+
+      const data = new FormData();
+      Object.entries(info.fields).forEach(([k, v]) => data.append(k, v));
+      data.append("file", file); // the file field must come last
+
+      setMsg("Uploading…");
+      const up = await fetch(info.url, { method: "POST", body: data });
+      if (!up.ok) throw new Error("S3 rejected the upload (" + up.status + ")");
+
+      setMsg("Uploaded. Analyzing…");
+      await waitForResult(info.key);
+      fileInput.value = "";
+    } catch (err) {
+      setMsg(err.message, true);
+    } finally {
+      uploadBtn.disabled = false;
+    }
+  });
+
+  load();
+</script>
+</body>
+</html>
